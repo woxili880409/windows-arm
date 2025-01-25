@@ -43,7 +43,7 @@ jobs:
           context: git
           images: |
             ${{ secrets.DOCKERHUB_REPO }}
-            ghcr.io/${{ github.repository }}
+            hub.docker.com/repository/docker/${{ github.repository }}
           tags: |
             type=raw,value=latest,priority=100
             type=raw,value=${{ vars.MAJOR }}.${{ vars.MINOR }}
@@ -58,8 +58,8 @@ jobs:
         name: Login into Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_PASS }}
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
       # -
       #   name: Login to GitHub Container Registry
       #   uses: docker/login-action@v3
