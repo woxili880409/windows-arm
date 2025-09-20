@@ -2,16 +2,6 @@ name: Build New
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
-    paths-ignore:
-      - '**/*.md'
-      - '**/*.yml'
-      - '.gitignore'
-      - '.dockerignore'
-      - '.github/**'
-      - '.github/workflows/**'
 
 concurrency:
   group: build
@@ -32,7 +22,7 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       -
@@ -50,7 +40,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=${{ vars.NAME }}
         env:
-          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
       - 
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -74,7 +64,7 @@ jobs:
           context: .
           push: true
           provenance: false
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}

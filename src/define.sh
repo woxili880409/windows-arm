@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+: "${KEY:=""}"
 : "${WIDTH:=""}"
 : "${HEIGHT:=""}"
 : "${VERIFY:=""}"
 : "${REGION:=""}"
+: "${EDITION:=""}"
 : "${MANUAL:=""}"
 : "${REMOVE:=""}"
 : "${VERSION:=""}"
@@ -15,14 +17,14 @@ set -Eeuo pipefail
 : "${PASSWORD:=""}"
 
 MIRRORS=2
-PLATFORM="ARM64"
 
 parseVersion() {
 
   if [[ "${VERSION}" == \"*\" || "${VERSION}" == \'*\' ]]; then
     VERSION="${VERSION:1:-1}"
   fi
-
+  
+  VERSION=$(expr "$VERSION" : "^\ *\(.*[^ ]\)\ *$")
   [ -z "$VERSION" ] && VERSION="win11"
 
   local msg="is not available for ARM64 CPU's."
@@ -34,11 +36,11 @@ parseVersion() {
     "11e" | "win11e" | "windows11e" | "windows 11e" )
       VERSION="win11arm64-enterprise-eval"
       ;;
-    "11i" | "11iot" | "iot11" | "win11i" | "win11-iot" | "win11arm64-iot" | "win11arm64-enterprise-iot-eval" )
+    "11i" | "11iot" | "iot11" | "win11i" | "win11-iot" | "win11arm64-iot" )
       VERSION="win11arm64-enterprise-ltsc-eval"
       [ -z "$DETECTED" ] && DETECTED="win11arm64-ltsc"
       ;;
-    "11l" | "11ltsc" | "ltsc11" | "win11l" | "win11-ltsc" | "win11arm64-ltsc" | "win11arm64-enterprise-ltsc-eval" )
+    "11l" | "11ltsc" | "ltsc11" | "win11l" | "win11-ltsc" | "win11arm64-ltsc" )
       VERSION="win11arm64-enterprise-ltsc-eval"
       [ -z "$DETECTED" ] && DETECTED="win11arm64-ltsc"
       ;;
@@ -48,11 +50,11 @@ parseVersion() {
     "10e" | "win10e" | "windows10e" | "windows 10e" )
       VERSION="win10arm64-enterprise-eval"
       ;;
-    "10i" | "10iot" | "iot10" | "win10i" | "win10-iot" | "win10arm64-iot" | "win10arm64-enterprise-iot-eval" )
+    "10i" | "10iot" | "iot10" | "win10i" | "win10-iot" | "win10arm64-iot" )
       VERSION="win10arm64-enterprise-ltsc-eval"
       [ -z "$DETECTED" ] && DETECTED="win10arm64-ltsc"
       ;;
-    "10l" | "10ltsc" | "ltsc10" | "win10l" | "win10-ltsc" | "win10arm64-ltsc" | "win10arm64-enterprise-ltsc-eval" )
+    "10l" | "10ltsc" | "ltsc10" | "win10l" | "win10-ltsc" | "win10arm64-ltsc" )
       VERSION="win10arm64-enterprise-ltsc-eval"
       [ -z "$DETECTED" ] && DETECTED="win10arm64-ltsc"
       ;;
@@ -60,19 +62,22 @@ parseVersion() {
     "8e" | "81e" | "8.1e" | "win8e" | "win81e" | "windows 8e" )
       error "Windows 8 $msg" && return 1
       ;;
-    "7" | "7e" | "win7" | "win7e" | "windows7" | "windows 7" | \
-    "7u" | "win7u" | "windows7u" | "windows 7u" | \
-    "7x86" | "win7x86" | "windows7x86"  | "win7x86-enterprise" )
+    "7" | "win7" | "windows7" | "windows 7" | "7u" | "win7u" | "windows7u" | "windows 7u" | "7e" | \
+    "win7e" | "windows7e" | "windows 7e" | "7x86" | "win7x86" | "win732" | "windows7x86" | "7ux86" | \
+    "7u32" | "win7x86-ultimate" | "7ex86" | "7e32" | "win7x86-enterprise" )
       error "Windows 7 $msg" && return 1
       ;;
-    "vista" | "ve" | "6" | "winvista" | "windowsvista" | "windows vista" | \
-    "vistu" | "vu" | "6u" | "winvistu" | "windowsvistu" | "windows vistu" | \
-    "vistax86" | "vex86" | "6x86" | "winvistax86" | "windowsvistax86"  | "winvistax86-enterprise" )
+    "vista" | "vs" | "6" | "winvista" | "windowsvista" | "windows vista" | "vistu" | "vu" | "6u" | "winvistu" | \
+    "viste" | "ve" | "6e" | "winviste" | "vistax86" | "vista32" | "6x86" | "winvistax86" | "windowsvistax86" | \
+    "vux86" | "vu32" | "winvistax86-ultimate" | "vex86" | "ve32" | "winvistax86-enterprise" )
       error "Windows Vista $msg" && return 1
       ;;
     "xp" | "xp32" | "xpx86" | "5" | "5x86" | "winxp" | "winxp86" | "windowsxp" | "windows xp" | \
     "xp64" | "xpx64" | "5x64" | "winxp64" | "winxpx64" | "windowsxp64" | "windowsxpx64" )
       error "Windows XP $msg" && return 1
+      ;;
+    "2k" | "2000" | "win2k" | "win2000" | "windows2k" | "windows2000" )
+      error "Windows 2000 $msg" && return 1
       ;;
     "25" | "2025" | "win25" | "win2025" | "windows2025" | "windows 2025" )
       error "Windows Server 2025 $msg" && return 1
@@ -85,6 +90,9 @@ parseVersion() {
       ;;
     "16" | "2016" | "win16" | "win2016" | "windows2016" | "windows 2016" )
       error "Windows Server 2016 $msg" && return 1
+      ;;
+    "hv" | "hyperv" | "hyper v" | "hyper-v" | "19hv" | "2019hv" | "win2019hv" )
+      error "Hyper-V Server 2019 $msg" && return 1
       ;;
     "2012" | "2012r2" | "win2012" | "win2012r2" | "windows2012" | "windows 2012" )
       error "Windows Server 2012 $msg" && return 1
@@ -443,10 +451,10 @@ fromFile() {
   local desc="$1"
   local file="${1,,}"
   local arch="${PLATFORM,,}"
-  
+
   file="${file//-/_}"
   file="${file// /_}"
-  
+
   case "$file" in
     *"_x64_"* | *"_x64."*)
       arch="x64"
@@ -490,7 +498,9 @@ fromName() {
 
   case "${name,,}" in
     *"windows 10"* ) id="win10${arch}" ;;
+    *"optimum 10"* ) id="win10${arch}" ;;
     *"windows 11"* ) id="win11${arch}" ;;
+    *"optimum 11"* ) id="win11${arch}" ;;
   esac
 
   echo "$id"
@@ -524,14 +534,9 @@ switchEdition() {
 
   local id="$1"
 
-  case "${id,,}" in
-    "win11${PLATFORM,,}-enterprise-eval" )
-      DETECTED="win11${PLATFORM,,}-enterprise"
-      ;;
-    "win10${PLATFORM,,}-enterprise-eval" )
-      DETECTED="win10${PLATFORM,,}-enterprise"
-      ;;
-  esac
+  if [[ "${id,,}" == *"-eval" ]]; then
+    [ -z "$DETECTED" ] && DETECTED="${id::-5}"
+  fi
 
   return 0
 }
@@ -541,6 +546,7 @@ getMido() {
   local id="$1"
   local lang="$2"
   local ret="$3"
+  local url=""
   local sum=""
   local size=""
 
@@ -551,16 +557,20 @@ getMido() {
       size=5460387840
       sum="57d1dfb2c6690a99fe99226540333c6c97d3fd2b557a50dfe3d68c3f675ef2b0"
       ;;
+    "win11arm64-enterprise-eval" )
+      size=4295096320
+      sum="dad633276073f14f3e0373ef7e787569e216d54942ce522b39451c8f2d38ad43"
+      ;;
     "win11arm64-enterprise-ltsc-eval" )
-      size=4252764160
-      sum="ccec358a760c3c581249f091ed42d04f37b2b99c347b7a58257c3cc272d7982c"
+      size=5042194432
+      sum="3dcdba9c9c0aa0430d4332b60c9afcb3cd613d648a49cbba2d4ef7b5978f32e8"
       ;;
   esac
 
   case "${ret,,}" in
     "sum" ) echo "$sum" ;;
     "size" ) echo "$size" ;;
-    *) echo "";;
+    *) echo "$url";;
   esac
 
   return 0
@@ -582,22 +592,21 @@ getLink1() {
 
   case "${id,,}" in
     "win11arm64" | "win11arm64-enterprise" | "win11arm64-enterprise-eval" )
-      size=6326812672
-      sum="464c75909b9c37864e144886445a2faa67ac86f0845a68cca3f017b97f810e8d"
-      url="11/en-us_windows_11_23h2_arm64.iso"
+      size=5219411968
+      sum="dbd54452c3c20b4625f511dae3c3e057270448fb661232d4fa66279f59a63157"
+      url="11/en-us_windows_11_24h2_arm64.iso"
       ;;
-    "win11arm64-ltsc" | "win11arm64-enterprise-ltsc-eval" )
-      [[ "${lang,,}" != "en" ]] && [[ "${lang,,}" != "en-us" ]] && return 0
+    "win11arm64-ltsc" | "win11arm64-enterprise-ltsc" | "win11arm64-enterprise-ltsc-eval" )
       size=5121449984
       sum="f8f068cdc90c894a55d8c8530db7c193234ba57bb11d33b71383839ac41246b4"
       url="11/X23-81950_26100.1742.240906-0331.ge_release_svc_refresh_CLIENT_ENTERPRISES_OEM_A64FRE_en-us.iso"
       ;;
     "win10arm64" | "win10arm64-enterprise" | "win10arm64-enterprise-eval" )
-      size=4846794752
-      sum="6d2688f95fa1d359d68ed0c38c3f38de7b3713c893410e15be9d1e706a4a58c7"
+      size=4689637376
+      sum="7b43e64f4e3b961a83f9b70efa4b9d863bc5c348fe86d75917ac974116d17227"
       url="10/en-us_windows_10_22h2_arm64.iso"
       ;;
-    "win10arm64-ltsc" | "win10arm64-enterprise-ltsc-eval" )
+    "win10arm64-ltsc" | "win10arm64-enterprise-ltsc" | "win10arm64-enterprise-ltsc-eval" )
       size=4430471168
       sum="d265df49b30a1477d010c79185a7bc88591a1be4b3eb690c994bed828ea17c00"
       url="10/en-us_windows_10_iot_enterprise_ltsc_2021_arm64_dvd_e8d4fc46.iso"
@@ -635,6 +644,31 @@ getLink2() {
       size=3300327424
       sum="812dae6b5bf5215db63b61ae10d8f0ffd3aa8529a18d96e9ced53341e2c676ec"
       url="tiny11-core-arm64/tiny11%20core%20arm64.iso"
+      ;;
+    "win11arm64" )
+      size=5460387840
+      sum="57d1dfb2c6690a99fe99226540333c6c97d3fd2b557a50dfe3d68c3f675ef2b0"
+      url="windows-11-24h2-arm64-iso/Win11_24H2_English_Arm64.iso"
+      ;;
+    "win11arm64-enterprise" | "win11arm64-enterprise-eval" )
+      size=6872444928
+      sum="2bf0fd1d5abd267cd0ae8066fea200b3538e60c3e572428c0ec86d4716b61cb7"
+      url="win11-23h2-en-fr/ARM64/SW_DVD9_Win_Pro_11_23H2_Arm64_English_Pro_Ent_EDU_N_MLF_X23-59519.ISO"
+      ;;
+    "win11arm64-ltsc" | "win11arm64-enterprise-ltsc" | "win11arm64-enterprise-ltsc-eval" )
+      size=5121449984
+      sum="f8f068cdc90c894a55d8c8530db7c193234ba57bb11d33b71383839ac41246b4"
+      url="Windows11LTSC/X23-81950_26100.1742.240906-0331.ge_release_svc_refresh_CLIENT_ENTERPRISES_OEM_A64FRE_en-us.iso"
+      ;;
+    "win10arm64" | "win10arm64-enterprise" | "win10arm64-enterprise-eval" )
+      size=5192060928
+      sum="101079b911c8c3dd9c9a88499a16b930fbf00cbaf901761d8265bb3a8fcd9ea9"
+      url="win-pro-10-22-h-2.15-arm-64-eng-intl-pro-ent-edu-n-mlf-x-23-67222/Win_Pro_10_22H2.15_Arm64_Eng_Intl_Pro_Ent_EDU_N_MLF_X23-67222.ISO"
+      ;;
+    "win10arm64-ltsc" | "win10arm64-enterprise-ltsc" | "win10arm64-enterprise-ltsc-eval" )
+      size=4430471168
+      sum="d265df49b30a1477d010c79185a7bc88591a1be4b3eb690c994bed828ea17c00"
+      url="windows-10-enterprise-ltsc-full-collection/en-us_windows_10_iot_enterprise_ltsc_2021_arm64_dvd_e8d4fc46.iso"
       ;;
   esac
 
@@ -696,6 +730,8 @@ isMido() {
   local lang="$2"
   local sum
 
+  [[ "${MIDO:-}" == [Nn]* ]] && return 1
+
   sum=$(getMido "$id" "en" "sum")
   [ -n "$sum" ] && return 0
 
@@ -706,6 +742,8 @@ isESD() {
 
   local id="$1"
   local lang="$2"
+
+  [[ "${ESD:-}" == [Nn]* ]] && return 1
 
   case "${id,,}" in
     "win11${PLATFORM,,}" | "win10${PLATFORM,,}" )
@@ -722,42 +760,12 @@ isESD() {
   return 1
 }
 
-isMG() {
-
-  local id="$1"
-  local lang="$2"
-
-  case "${id,,}" in
-    "win11${PLATFORM,,}" )
-      return 0
-      ;;
-    "win11${PLATFORM,,}-enterprise" | "win11${PLATFORM,,}-enterprise-eval" )
-      return 0
-      ;;
-    "win11${PLATFORM,,}-ltsc" | "win11${PLATFORM,,}-enterprise-ltsc-eval" )
-      return 0
-      ;;
-    "win10${PLATFORM,,}" )
-      return 0
-      ;;
-    "win10${PLATFORM,,}-enterprise" | "win10${PLATFORM,,}-enterprise-eval" )
-      return 0
-      ;;
-    "win10${PLATFORM,,}-ltsc" | "win10${PLATFORM,,}-enterprise-ltsc-eval" )
-      return 0
-      ;;
-  esac
-
-  return 1
-}
-
 validVersion() {
 
   local id="$1"
   local lang="$2"
   local url
 
-  isMG "$id" "$lang" && return 0
   isESD "$id" "$lang" && return 0
   isMido "$id" "$lang" && return 0
 
@@ -789,13 +797,9 @@ addFolder() {
   cp -Lr "$folder/." "$dest" || return 1
 
   local file
-  file=$(find "$dest" -maxdepth 1 -type f -iname install.bat | head -n 1)
+  file=$(find "$dest" -maxdepth 1 -type f -iname install.bat -print -quit)
   [ -f "$file" ] && unix2dos -q "$file"
 
-  return 0
-}
-
-migrateFiles() {
   return 0
 }
 
